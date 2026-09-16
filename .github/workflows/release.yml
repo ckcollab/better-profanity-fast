@@ -18,6 +18,21 @@ permissions:
   contents: read
 
 jobs:
+  version-check:
+    name: tag matches package version
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Git tag must match pyproject.toml / Cargo.toml
+        if: github.ref_type == 'tag'
+        run: |
+          set -euo pipefail
+          tag="${GITHUB_REF_NAME#v}"
+          proj=$(sed -n '/^\[project\]/,/^\[/{s/^version = "\(.*\)"/\1/p;}' pyproject.toml | head -1)
+          crate=$(sed -n '/^\[package\]/,/^\[/{s/^version = "\(.*\)"/\1/p;}' Cargo.toml | head -1)
+          echo "tag=$tag pyproject=$proj cargo=$crate"
+          test -n "$tag" && test "$tag" = "$proj" && test "$tag" = "$crate"
+
   rust-test:
     name: cargo test
     runs-on: ubuntu-latest
@@ -50,7 +65,7 @@ jobs:
 
   linux:
     name: manylinux ${{ matrix.target }}
-    needs: [rust-test, python-test]
+    needs: [version-check, rust-test, python-test]
     if: github.ref_type == 'tag' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     strategy:
@@ -75,7 +90,7 @@ jobs:
 
   musllinux:
     name: musllinux ${{ matrix.target }}
-    needs: [rust-test, python-test]
+    needs: [version-check, rust-test, python-test]
     if: github.ref_type == 'tag' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     strategy:
@@ -100,7 +115,7 @@ jobs:
 
   macos:
     name: macOS ${{ matrix.target }}
-    needs: [rust-test, python-test]
+    needs: [version-check, rust-test, python-test]
     if: github.ref_type == 'tag' || github.event_name == 'workflow_dispatch'
     runs-on: ${{ matrix.runner }}
     strategy:
@@ -128,7 +143,7 @@ jobs:
 
   windows:
     name: Windows ${{ matrix.target }}
-    needs: [rust-test, python-test]
+    needs: [version-check, rust-test, python-test]
     if: github.ref_type == 'tag' || github.event_name == 'workflow_dispatch'
     runs-on: windows-latest
     strategy:
@@ -152,7 +167,7 @@ jobs:
 
   sdist:
     name: sdist
-    needs: [rust-test, python-test]
+    needs: [version-check, rust-test, python-test]
     if: github.ref_type == 'tag' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
