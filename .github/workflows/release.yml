@@ -1,7 +1,9 @@
-# Build wheels on every OS; publish to PyPI when a version tag is pushed.
+# Push / PR: tests only.
+# Tag: tests, then wheels/sdist, then PyPI.
+# workflow_dispatch: tests + wheels (no publish) so you can dry-run a build.
 #
-# One abi3 wheel per platform covers CPython 3.9–3.14. Pull requests also
-# exercise 3.10 / 3.12 / 3.14. There is no pure-Python fallback.
+# One abi3 wheel per platform covers CPython 3.9–3.14. There is no
+# pure-Python fallback.
 
 name: release
 
@@ -16,8 +18,40 @@ permissions:
   contents: read
 
 jobs:
+  rust-test:
+    name: cargo test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: cargo test
+        run: cargo test --release --lib
+
+  python-test:
+    name: test Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.12", "3.14"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          allow-prereleases: true
+      - name: Build and install locally
+        uses: PyO3/maturin-action@v1
+        with:
+          command: develop
+          args: --release
+      - name: Run tests
+        run: python -m unittest discover -s tests -v
+
   linux:
     name: manylinux ${{ matrix.target }}
+    needs: [rust-test, python-test]
+    if: github.ref_type == 'tag' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -41,6 +75,8 @@ jobs:
 
   musllinux:
     name: musllinux ${{ matrix.target }}
+    needs: [rust-test, python-test]
+    if: github.ref_type == 'tag' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -64,6 +100,8 @@ jobs:
 
   macos:
     name: macOS ${{ matrix.target }}
+    needs: [rust-test, python-test]
+    if: github.ref_type == 'tag' || github.event_name == 'workflow_dispatch'
     runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
@@ -90,6 +128,8 @@ jobs:
 
   windows:
     name: Windows ${{ matrix.target }}
+    needs: [rust-test, python-test]
+    if: github.ref_type == 'tag' || github.event_name == 'workflow_dispatch'
     runs-on: windows-latest
     strategy:
       fail-fast: false
@@ -112,6 +152,8 @@ jobs:
 
   sdist:
     name: sdist
+    needs: [rust-test, python-test]
+    if: github.ref_type == 'tag' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -125,42 +167,9 @@ jobs:
           name: wheels-sdist
           path: dist
 
-  rust-test:
-    name: cargo test
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-      - name: cargo test
-        run: cargo test --release --lib
-
-  test:
-    name: test Python ${{ matrix.python-version }}
-    needs: [linux]
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        python-version: ["3.10", "3.12", "3.14"]
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
-          allow-prereleases: true
-      - uses: actions/download-artifact@v4
-        with:
-          name: wheels-manylinux-x86_64
-          path: dist
-      - name: Install wheel and run tests
-        run: |
-          # Same version as PyPI would otherwise win; test the artifact we built.
-          pip install --no-index --find-links dist better-profanity-fast
-          python -m unittest discover -s tests -v
-
   publish:
     name: Publish to PyPI
-    needs: [linux, musllinux, macos, windows, sdist, rust-test, test]
+    needs: [linux, musllinux, macos, windows, sdist]
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/')
     environment:
