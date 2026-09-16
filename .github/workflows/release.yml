@@ -55,13 +55,15 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
           allow-prereleases: true
-      - name: Build and install locally
+      - name: Build local wheel
         uses: PyO3/maturin-action@v1
         with:
-          command: develop
-          args: --release
-      - name: Run tests
-        run: python -m unittest discover -s tests -v
+          command: build
+          args: --release --out dist
+      - name: Install wheel and run tests
+        run: |
+          pip install --no-index --find-links dist better-profanity-fast
+          python -m unittest discover -s tests -v
 
   linux:
     name: manylinux ${{ matrix.target }}
