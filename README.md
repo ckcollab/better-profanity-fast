@@ -85,34 +85,6 @@ cargo test --release --lib
 python -m unittest discover -s tests -v
 ```
 
-## Release (GitHub Actions → PyPI)
-
-1. Push this folder as its own GitHub repository.
-2. On [pypi.org](https://pypi.org/) create the project **Trusted Publisher**:
-   - PyPI project name: `better-profanity-fast`
-   - Workflow: `release.yml`
-   - Environment: `pypi`
-3. Create a matching GitHub Environment named `pypi`.
-4. Replace `PLACEHOLDER` in `pyproject.toml` / `Cargo.toml` with the real repo URL.
-5. Publish:
-
-```bash
-git tag v0.1.0
-git push origin v0.1.0
-```
-
-The `release` workflow builds:
-
-| Platform | Arch |
-|---|---|
-| Linux manylinux | x86_64, aarch64 |
-| Linux musllinux (Alpine) | x86_64, aarch64 |
-| macOS | x86_64, arm64 |
-| Windows | x64 |
-
-then uploads to PyPI via OIDC (no API token). Pull requests run `cargo test`
-and the Python suite on CPython 3.10, 3.12, and 3.14; they do not publish.
-
 ## License
 
 MIT. The default wordlist is adapted from better_profanity (MIT).
