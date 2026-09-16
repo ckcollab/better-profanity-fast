@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 rust-version = "1.74"
 description = "Fast better_profanity-compatible filter implemented in Rust"
+authors = ["Eric Carmichael"]
 license = "MIT"
 repository = "https://github.com/ckcollab/better-profanity-fast"
 publish = false

@@ -178,6 +178,77 @@ class FalsePositiveTests(unittest.TestCase):
         self.assertTrue(self.profanity.contains_word("f*ck"))
         self.assertFalse(self.profanity.contains_word("fck"))
 
+    def test_infix_only_at_six_plus_letters(self):
+        self.assertTrue(self.profanity.contains_profanity("ThisRetard"))
+        self.assertFalse(self.profanity.contains_profanity("ThisPenis"))
+        self.assertFalse(self.profanity.contains_profanity("ThisFuck"))
+        self.assertFalse(self.profanity.contains_profanity("fuckbaby"))
+        self.assertFalse(self.profanity.contains_profanity("stardust"))
+        self.assertFalse(self.profanity.contains_profanity("drape"))
+
+    def test_stretch_matches_without_short_false_positives(self):
+        self.assertTrue(self.profanity.contains_profanity("peenis"))
+        self.assertTrue(self.profanity.contains_profanity("peniis"))
+        self.assertTrue(self.profanity.contains_profanity("pussssy"))
+        self.assertFalse(self.profanity.contains_profanity("good"))
+        self.assertFalse(self.profanity.contains_profanity("public"))
+
+    def test_assessment_and_class_are_not_ass(self):
+        self.assertFalse(self.profanity.contains_profanity("assessment"))
+        self.assertFalse(self.profanity.contains_profanity("class"))
+        self.assertEqual(self.profanity.censor("assessment class"), "assessment class")
+
+
+class WhitespaceJoinTests(unittest.TestCase):
+    def setUp(self):
+        self.filt = Profanity([])
+        self.filt.load_censor_words(
+            ["loli", "fuck", "shit", "hand job", "ass-pirate", "ball sack"],
+            whitelist_words=["lol"],
+        )
+
+    def test_loli_itself_matches(self):
+        self.assertTrue(self.filt.contains_profanity("loli"))
+        self.assertTrue(self.filt.contains_profanity("l0li"))
+        self.assertTrue(self.filt.contains_profanity("l0l1"))
+
+    def test_obfuscated_dot_without_space_matches(self):
+        self.assertTrue(self.filt.contains_profanity("lol.i"))
+        self.assertTrue(self.filt.contains_profanity("lol.i x"))
+        self.assertTrue(self.filt.contains_profanity("lol.I"))
+
+    def test_sentence_lol_period_space_i_is_clean(self):
+        cases = [
+            "lol. I",
+            "lol. I might",
+            "lol I",
+            "lol.  I",
+            "lol.\nI",
+            "hello lol. I there",
+            (
+                "the white marks when I marbled her lol. I might've kept this "
+                "if the overcoat wasn't pomegranate"
+            ),
+        ]
+        for text in cases:
+            self.assertFalse(self.filt.contains_profanity(text), text)
+            self.assertEqual(self.filt.censor(text), text, text)
+
+    def test_whitelist_lol_does_not_block_loli(self):
+        self.assertEqual(self.filt.censor("lol"), "lol")
+        self.assertTrue(self.filt.contains_profanity("loli"))
+
+    def test_phrases_still_join_across_spaces(self):
+        self.assertEqual(self.filt.censor("hand job"), "****")
+        self.assertEqual(self.filt.censor("hello hand job there"), "hello **** there")
+        self.assertEqual(self.filt.censor("ball sack"), "****")
+        self.assertEqual(self.filt.censor("ass-pirate"), "****")
+
+    def test_numeric_ids_are_not_loli(self):
+        for text in ["1011", "Xor (#101111)", "Xor (#101011)", "cat1011"]:
+            self.assertFalse(self.filt.contains_profanity(text), text)
+            self.assertEqual(self.filt.censor(text), text, text)
+
 
 class WordlistOverrideTests(unittest.TestCase):
     def test_env_wordlist_replaces_packaged_list(self):

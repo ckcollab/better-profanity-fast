@@ -390,10 +390,6 @@ impl ProfanityTrie {
             && walk_chars(&self.phrase_root, collapsed, false, false)
     }
 
-    fn could_be_word(&self, collapsed: &[char]) -> bool {
-        !is_pure_number(collapsed) && walk_chars(&self.root, collapsed, false, false)
-    }
-
     fn is_whitelisted(&self, folded: &[char], raw: &[char]) -> bool {
         if self.whitelist_hashes.is_empty() {
             return false;
@@ -445,6 +441,7 @@ impl ProfanityTrie {
                 continue;
             }
             let mut best_j = None;
+            let mut crossed_whitespace = false;
             raw.clear();
             let max_j = words.len().min(i + self.max_join_words);
             for j in i..max_j {
@@ -452,6 +449,8 @@ impl ProfanityTrie {
                 if j > i {
                     let prev_end = words[j - 1].1;
                     if chars[prev_end..start].iter().any(|ch| ch.is_whitespace()) {
+                        // Space joins only for multi-word phrases ("hand job"),
+                        // never for a single dictionary word ("lol" + "I" → loli).
                         trial.clear();
                         trial.extend(raw.iter().copied().filter(|ch| !is_mn(*ch)));
                         for &ch in &chars[start..end] {
@@ -459,9 +458,10 @@ impl ProfanityTrie {
                                 push_lower(ch, &mut trial);
                             }
                         }
-                        if !self.could_be_word(&trial) && !self.could_be_phrase(&trial) {
+                        if !self.could_be_phrase(&trial) {
                             break;
                         }
+                        crossed_whitespace = true;
                     }
                     for &ch in &chars[start..end] {
                         push_lower(ch, &mut raw);
@@ -476,7 +476,12 @@ impl ProfanityTrie {
                 if is_pure_number(&folded) {
                     continue;
                 }
-                if !self.chars_match(&folded) && !self.phrase_match(&folded) {
+                let is_hit = if crossed_whitespace {
+                    self.phrase_match(&folded)
+                } else {
+                    self.chars_match(&folded) || self.phrase_match(&folded)
+                };
+                if !is_hit {
                     continue;
                 }
                 if self.is_whitelisted(&folded, &raw) {
@@ -663,11 +668,26 @@ mod tests {
     #[test]
     fn joins_handjob_across_spaces() {
         let trie = ProfanityTrie::from_words(
-            ["handjob", "whore"].into_iter().map(|s| s.to_string()));
+            ["hand job", "whore"].into_iter().map(|s| s.to_string()),
+        );
         assert_eq!(
             trie.censor("That wh0re gave m3 a very good H4nd j0b, dude.", '*'),
             "That **** gave m3 a very good ****, dude."
         );
+    }
+
+    #[test]
+    fn does_not_join_loli_across_whitespace() {
+        let trie = ProfanityTrie::from_words_with_whitelist(
+            ["loli", "fuck", "hand job"].into_iter().map(|s| s.to_string()),
+            ["lol"].into_iter().map(|s| s.to_string()),
+        );
+        assert!(trie.contains_profanity("loli"));
+        assert!(trie.contains_profanity("lol.i"));
+        assert!(!trie.contains_profanity("lol. I"));
+        assert!(!trie.contains_profanity("lol I"));
+        assert_eq!(trie.censor("lol", '*'), "lol");
+        assert!(trie.contains_profanity("hand job"));
     }
 
     #[test]

@@ -87,4 +87,5 @@ python -m unittest discover -s tests -v
 
 ## License
 
-MIT. The default wordlist is adapted from better_profanity (MIT).
+MIT. Copyright (c) 2026 Eric Carmichael. The default wordlist is adapted from
+better_profanity (MIT).
