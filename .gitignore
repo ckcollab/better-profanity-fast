@@ -1,0 +1,15 @@
+/target/
+/dist/
+/wheels/
+*.egg-info/
+__pycache__/
+.pytest_cache/
+.venv/
+.venv-pkg/
+.mypy_cache/
+*.so
+*.dylib
+*.dll
+.DS_Store
+python/better_profanity_fast/_native*.so
+python/better_profanity_fast/_native*.pyd

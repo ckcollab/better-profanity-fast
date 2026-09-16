@@ -1,0 +1,40 @@
+[build-system]
+requires = ["maturin>=1.9,<2.0"]
+build-backend = "maturin"
+
+[project]
+name = "better-profanity-fast"
+version = "0.1.0"
+description = "Fast better_profanity-compatible filter implemented in Rust"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [{ name = "better-profanity-fast contributors" }]
+keywords = ["profanity", "censor", "moderation", "rust"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Programming Language :: Rust",
+    "Topic :: Text Processing :: Filters",
+]
+dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/PLACEHOLDER/better-profanity-fast"
+Issues = "https://github.com/PLACEHOLDER/better-profanity-fast/issues"
+
+[tool.maturin]
+python-source = "python"
+module-name = "better_profanity_fast._native"
+include = ["python/better_profanity_fast/wordlist.txt"]
+manifest-path = "Cargo.toml"
