@@ -154,7 +154,8 @@ jobs:
           path: dist
       - name: Install wheel and run tests
         run: |
-          pip install --find-links dist better-profanity-fast
+          # Same version as PyPI would otherwise win; test the artifact we built.
+          pip install --no-index --find-links dist better-profanity-fast
           python -m unittest discover -s tests -v
 
   publish:
