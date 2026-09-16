@@ -70,7 +70,7 @@ jobs:
       matrix:
         include:
           - target: x86_64
-            runner: macos-13
+            runner: macos-15-intel
           - target: aarch64
             runner: macos-latest
     steps:
